@@ -1,0 +1,5 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "Local Symbols")(type "KiCad")(uri "${KIPRJMOD}/Local Symbols.kicad_sym")(options "")(descr ""))
+  (lib (name "AAA Local Symbols")(type "KiCad")(uri "${KIPRJMOD}/AAA Local Symbols.kicad_sym")(options "")(descr ""))
+)

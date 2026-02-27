@@ -1,0 +1,30 @@
+Microcontroller: Sparkfun Pro Micro (5V/16MHz)
+Quantity: 1
+https://www.sparkfun.com/sparkfun-qwiic-pro-micro-usb-c-atmega32u4.html
+https://www.sparkfun.com/pro-micro-5v-16mhz.html
+
+
+Screw terminals: 2-pin 2.54mm pitch
+Quantity: 1-8
+https://www.sparkfun.com/screw-terminals-2-54mm-pitch-2-pin.html
+
+
+Transistors: BS170
+Quantity: 2-9
+https://www.jameco.com/z/BS170-Major-Brands-Transistor-BS170-TO-92-Transistor-N-Channel-MOSFET-60-Volt_256031.html
+https://www.mouser.com/ProductDetail/onsemi/BS170?qs=FOlmdCx%252BAA0Q%252B3zvwxJUKQ%3D%3D
+
+
+Resistors: 100 Ohm 5% 1/4 watt (or to taste)
+Quantity: 1-8
+https://www.jameco.com/z/CF1-4W101JRC-PC-Jameco-ValuePro-Carbon-Film-Resistor-100-Ohm-5-1-4-Watt-250mW-POCO-Club-10-Pack-_2758551.html
+
+
+IR Receiver: Vishay TSOP38288
+Quantity: 1
+https://www.adafruit.com/product/157
+
+
+IR LED
+Quantity: 1-8
+https://www.adafruit.com/product/388

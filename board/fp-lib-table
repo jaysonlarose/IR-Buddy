@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "AAA Local Footprints")(type "KiCad")(uri "${KIPRJMOD}/AAA Local Footprints.pretty")(options "")(descr ""))
+)
