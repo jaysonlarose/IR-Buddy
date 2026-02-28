@@ -253,7 +253,36 @@ The BS170 transistor in the center of the board connects the microcontroller's I
 
 Here's an example of a minimum-configuration IR-Buddy.
 
-The microcontroller firmware lives in the "firmware" subdirectory. An Ubuntu machine with the "arduino" and "arduino-mk" packages installed was used as the initial development environment. There's no reason the official Arduino IDE shouldn't work, but you're on your own as far as getting that working. Worst-case scenario, you can use it to upload "firmware/ir-buddy-static_.hex" to the microcontroller. Be sure to set the board type to "Arduino Leonardo".
+### Building and Installing the Firmware
+
+#### Using arduino-mk
+
+The development enviroment I use for building "Arduino" firmware is made up of a Debian-based Linux distribution with the "arduino" and "arduino-mk" packages installed. If you're familiar with what this is, then you should be basically good to go. Plug in the Sparkfun Pro Micro via USB, check `dmesg` to see what /dev entry it got assigned, update Makefile to match, run `make` and `make upload`.
+
+#### Using the Arduino IDE
+
+I've tweaked the file and directory names in such a way that this will work in the Arduino IDE as well. 
+
+* Plug the Sparkfun Pro Micro board in via USB.
+* Menu to "File -> Open". Navigate to and open firmware/firmware.ino.
+* Menu to "Tools -> Board -> Arduino AVR Boards" and select "Arduino Leonardo".
+* Menu to "Port" and choose the appropriate port that the Pro Micro board is on.
+* Click the "Verify" button to build. Ignore the "Low memory available. stability problems may occur." warning.
+* Click the "Upload" button.
+
+#### Uploading the Provided .hex File Using Avrdude
+
+Or, if you're happy with the firmware as I built it and are slightly hardcore, you can just upload the firmware_.hex file that this repository ships with and call it a day.
+
+* Plug the Sparkfun Pro Micro board in via USB.
+* Doubleclick the board's reset button to put it into firmware update mode.
+* Run something very similar to the following:
+
+```bash
+avrdude -q -V -p atmega32u4 -C /etc/avrdude.conf -D -c avr109 -b 57600 -P /dev/ttyACM2 -U flash:w:firmware_.hex:i
+```
+
+I say "similar to" because I don't know where your avrdude.conf file is located, nor do I know how to refer to the serial port that the Pro Micro board will show up as.
 
 ## License
 

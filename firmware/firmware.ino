@@ -1,5 +1,5 @@
-#include <IRremote.h>
-#include <IRremoteInt.h>
+#include "src/Arduino-IRremote2/IRremote.h"
+#include "src/Arduino-IRremote2/IRremoteInt.h"
 #include <avr/pgmspace.h>
 
 #undef IRRECV_PIN
