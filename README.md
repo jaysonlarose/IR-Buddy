@@ -16,7 +16,7 @@ What do I mean by "not too smart"? IR-buddy doesn't have a concept of what *type
 
 ## Protocol Details
 
-IR-buddy communicates as a standard USB Serial device using the ASCII character set. Line termination is UNIX-style, using just the linefeed character (0x0a). You may need to fiddle around with your terminal emulator 
+IR-buddy communicates as a standard USB Serial device using the ASCII character set. Line termination is UNIX-style, using just the linefeed character (0x0a). You may need to fiddle around with your terminal emulator software to get this dialed in.
 
 ### IR Reception
 
