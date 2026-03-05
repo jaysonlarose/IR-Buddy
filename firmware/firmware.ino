@@ -49,22 +49,13 @@ bool printed_rx = false;
 char charbuf[8];
 uint8_t charpos = 0;
 
-// if repeatstate is greater than 0, repeatpos represents the additional slots in
-// codebuf that are taken up by the repeaty bits. If repeatstate is greater than 1, firstrepeatpos
-// represents the start position of additional timings to be sent ONCE at the start of a repeat, 
-// and then repeatpos represents the start position of what to send over and over.
-//
 // non-repeating code (repeatstate == 0):
 // 0 -> codepos
 //
 // simple repeat (repeatstate == 1):
 // 0 -> codepos -> repeatpos
-//
-// complex repeat (repeatstate == 2):
-// 0 -> firstrepeatpos -> repeatpos
 
 uint8_t repeatstate = 0;
-uint16_t firstrepeatpos = 0;
 uint16_t repeatpos = 0;
 
 // Emitter carrier frequency in kHz
@@ -171,7 +162,7 @@ void sendraw_mult(IRsend sender, volatile unsigned int buf[], unsigned int len, 
 	//Serial.println("SENDING");
 	irsend.enableIROut(khz);
 
-	//space_long(sender, 5000);
+	space_long(sender, 5000);
 	for (unsigned int i = 0; i < len; i++) {
 		unsigned long duration = (unsigned long) buf[i] * multiplier;
 		if (i & 1) {
@@ -237,7 +228,6 @@ void parser_reset() {
 		//Serial.println(ram_avail());
 		codepos = 0;
 		charpos = 0;
-		firstrepeatpos = 0;
 		repeatpos = 0;
 		repeatstate = 0;
 		emitfreq = 38;
@@ -378,7 +368,7 @@ void loop() {
 				if (ansi_mode && charpos == 0) {
 					// restore_cursor_position
 					Serial.print(F("\x1b[u"));
-					Serial.print(codepos + firstrepeatpos  + repeatpos + 1);
+					Serial.print(codepos + repeatpos + 1);
 				}
 				charbuf[charpos] = c;
 				if (charpos < 8) {
@@ -405,7 +395,7 @@ void loop() {
 				// restore_cursor_position + "FREQ " + save_cursor_position
 				if (ansi_mode) {
 					Serial.print(F("\x1b[uFREQ \x1b[s"));
-					Serial.print(codepos + firstrepeatpos + repeatpos);
+					Serial.print(codepos + repeatpos);
 				}
 			// 'M' specifies the previous value is to be used to set the muxing
 			} else if ((c == 'M') && charpos == 0 && repeatstate == 0 && codepos > 0) {
@@ -424,7 +414,7 @@ void loop() {
 					// restore_cursor_position + "MUX " + save_cursor_position
 					if (ansi_mode) {
 						Serial.print(F("\x1b[uMUX \x1b[s"));
-						Serial.print(codepos + firstrepeatpos + repeatpos);
+						Serial.print(codepos + repeatpos);
 					}
 				}
 			// if charbuf has data in it, ' ' or '\n' prompt digestion of charbuf.
@@ -432,7 +422,7 @@ void loop() {
 				charbuf[charpos] = '\0';
 				charpos = 0;
 				rawval = strtoul(charbuf, NULL, 10);
-				irparams.rawbuf[codepos + firstrepeatpos + repeatpos] = (unsigned int) (rawval / CODE_DIV);
+				irparams.rawbuf[codepos + repeatpos] = (unsigned int) (rawval / CODE_DIV);
 				if (repeatstate > 0) {
 					repeatpos++;
 				} else {
