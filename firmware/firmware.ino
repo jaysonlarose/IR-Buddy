@@ -305,6 +305,12 @@ void loop() {
 				}
 				set_irmux(binary_mux);
 				if (binary_repeatlen > 0) {
+					if (irparams.rawbuf[binary_codelen - 1] >= SETTLE_DURATION / CODE_DIV) {
+						irparams.rawbuf[binary_codelen - 1] -= (SETTLE_DURATION / CODE_DIV);
+					}
+					if (irparams.rawbuf[binary_codelen + binary_repeatlen - 1] >= SETTLE_DURATION / CODE_DIV) {
+						irparams.rawbuf[binary_codelen - binary_repeatlen - 1] -= (SETTLE_DURATION / CODE_DIV);
+					}
 					// send OP_REPEATING
 					Serial.write(OP_REPEATING);
 				} else {
@@ -314,12 +320,6 @@ void loop() {
 				//sendraw_mult(irsend, codebuf, binary_codelen, CODE_DIV, binary_freq);
 				sendraw_mult(irsend, irparams.rawbuf, binary_codelen, CODE_DIV, binary_freq);
 				if (binary_repeatlen > 0) {
-					if (irparams.rawbuf[binary_codelen - 1] >= SETTLE_DURATION / CODE_DIV) {
-						irparams.rawbuf[binary_codelen - 1] -= (SETTLE_DURATION / CODE_DIV);
-					}
-					if (irparams.rawbuf[binary_codelen + binary_repeatlen - 1] >= SETTLE_DURATION / CODE_DIV) {
-						irparams.rawbuf[binary_codelen - binary_repeatlen - 1] -= (SETTLE_DURATION / CODE_DIV);
-					}
 					while (!Serial.available()) {
 						//sendraw_mult(irsend, codebuf + binary_codelen, binary_repeatlen, CODE_DIV, binary_freq);
 						sendraw_mult(irsend, irparams.rawbuf + binary_codelen, binary_repeatlen, CODE_DIV, binary_freq);
