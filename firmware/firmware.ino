@@ -21,6 +21,8 @@ IRrecv irrecv(IRRECV_PIN, 13);
 // Note that IR reception is further constrained by the USECPERTICK def, which comes out of the box as 50.
 // In binary mode, the appropriate math is performed so that the values sent over the line conform to the CODE_DIV division and not USECPERTICK.
 #define CODE_DIV 10
+#define SETTLE_DURATION 5000
+
 #define OP_IR_TRANSMIT  0x01
 #define OP_IR_RECEIVE   0x02
 #define OP_EXIT_BINARY  0x03
@@ -162,7 +164,7 @@ void sendraw_mult(IRsend sender, volatile unsigned int buf[], unsigned int len, 
 	//Serial.println("SENDING");
 	irsend.enableIROut(khz);
 
-	space_long(sender, 5000);
+	space_long(sender, SETTLE_DURATION);
 	for (unsigned int i = 0; i < len; i++) {
 		unsigned long duration = (unsigned long) buf[i] * multiplier;
 		if (i & 1) {
@@ -300,19 +302,7 @@ void loop() {
 				binary_repeatlen = recv_16bit();
 				for (uint16_t i = 0; i < binary_codelen + binary_repeatlen; i++) {
 					irparams.rawbuf[i] = recv_16bit();
-					//codebuf[i] = recv_16bit();
 				}
-				//for (int i = 0; i < binary_codelen; i++) {
-				//	Serial.print(codebuf[i]);
-				//	Serial.print(' ');
-				//}
-				//Serial.println();
-				//Serial.print("REPEAT ");
-				//for (int i = binary_codelen; i < binary_codelen + binary_repeatlen; i++) {
-				//	Serial.print(codebuf[i]);
-				//	Serial.print(' ');
-				//}
-				//Serial.println();
 				set_irmux(binary_mux);
 				if (binary_repeatlen > 0) {
 					// send OP_REPEATING
@@ -324,6 +314,12 @@ void loop() {
 				//sendraw_mult(irsend, codebuf, binary_codelen, CODE_DIV, binary_freq);
 				sendraw_mult(irsend, irparams.rawbuf, binary_codelen, CODE_DIV, binary_freq);
 				if (binary_repeatlen > 0) {
+					if (irparams.rawbuf[binary_codelen - 1] >= SETTLE_DURATION / CODE_DIV) {
+						irparams.rawbuf[binary_codelen - 1] -= (SETTLE_DURATION / CODE_DIV);
+					}
+					if (irparams.rawbuf[binary_codelen + binary_repeatlen - 1] >= SETTLE_DURATION / CODE_DIV) {
+						irparams.rawbuf[binary_codelen - binary_repeatlen - 1] -= (SETTLE_DURATION / CODE_DIV);
+					}
 					while (!Serial.available()) {
 						//sendraw_mult(irsend, codebuf + binary_codelen, binary_repeatlen, CODE_DIV, binary_freq);
 						sendraw_mult(irsend, irparams.rawbuf + binary_codelen, binary_repeatlen, CODE_DIV, binary_freq);
@@ -458,15 +454,19 @@ void loop() {
 					Serial.println(F("ERROR"));
 				} else if (repeatpos > 0) {
 					// This needs to be "% 2 == 0" because there's an off duration at the end.
-					if (codepos % 2 != 0) {
+					if (codepos % 2 != 0 || repeatpos % 2 != 0) {
 						Serial.println(F("ERROR"));
 					} else {
+						if (irparams.rawbuf[codepos - 1] >= SETTLE_DURATION / CODE_DIV) {
+							irparams.rawbuf[codepos - 1] -= (SETTLE_DURATION / CODE_DIV);
+						}
+						if (irparams.rawbuf[codepos + repeatpos - 1] >= SETTLE_DURATION / CODE_DIV) {
+							irparams.rawbuf[codepos + repeatpos - 1] -= (SETTLE_DURATION / CODE_DIV);
+						}
 						Serial.println(F("REPEAT"));
 						Serial.flush();
-						//sendraw_mult(irsend, codebuf, codepos, CODE_DIV, emitfreq);
 						sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV, emitfreq);
 						while (!Serial.available()) {
-							//sendraw_mult(irsend, codebuf + codepos, repeatpos, CODE_DIV, emitfreq);
 							sendraw_mult(irsend, irparams.rawbuf + codepos, repeatpos, CODE_DIV, emitfreq);
 						}
 						Serial.read();
@@ -477,7 +477,6 @@ void loop() {
 					Serial.println(F("OK"));
 					
 					Serial.flush();
-					//sendraw_mult(irsend, codebuf, codepos, CODE_DIV, emitfreq);
 					sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV, emitfreq);
 				}
 				parser_reset();
