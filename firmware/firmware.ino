@@ -62,7 +62,6 @@ uint16_t repeatpos = 0;
 
 // Emitter carrier frequency in kHz
 int emitfreq = 38;
-int current_emitfreq = 0;
 
 extern volatile irparams_t irparams;
 
@@ -78,7 +77,6 @@ void dump(decode_results *results) {
 	Serial.print(F("IR"));
 	for (uint16_t i = 0; i < results->rawlen; i++) {
 		Serial.print(' ');
-		//Serial.print(results->rawbuf[i] * USECPERTICK);
 		Serial.print((unsigned long) results->rawbuf[i] * USECPERTICK);
 	}
 	Serial.println("");
@@ -221,12 +219,9 @@ void parser_reset() {
 	if (binary_mode) {
 	} else {
 		set_irmux(0xff);
+		#ifdef IRRECV_PIN
 		irrecv.enableIRIn();
-		//#ifdef IRRECV_PIN
-		//irrecv.enableIRIn();
-		//#endif
-		//Serial.print(F("RAM free: "));
-		//Serial.println(ram_avail());
+		#endif
 		codepos = 0;
 		charpos = 0;
 		repeatpos = 0;
@@ -289,9 +284,7 @@ void loop() {
 	}
 	#endif
 	while (Serial.available()) {
-		//char c = Serial.read();
 		uint8_t c = Serial.read();
-		//Serial.write(c);
 		if (binary_mode) {
 			if (c == OP_IR_TRANSMIT) {
 				irrecv.pause();
@@ -304,16 +297,8 @@ void loop() {
 				}
 				set_irmux(binary_mux);
 				if (binary_repeatlen > 0) {
-					//if (irparams.rawbuf[binary_codelen - 1] >= SETTLE_DURATION / CODE_DIV) {
-					//	irparams.rawbuf[binary_codelen - 1] -= (SETTLE_DURATION / CODE_DIV);
-					//}
-					//if (irparams.rawbuf[binary_codelen + binary_repeatlen - 1] >= SETTLE_DURATION / CODE_DIV) {
-					//	irparams.rawbuf[binary_codelen - binary_repeatlen - 1] -= (SETTLE_DURATION / CODE_DIV);
-					//}
-					// send OP_REPEATING
 					Serial.write(OP_REPEATING);
 				} else {
-					// send OP_ACK
 					Serial.write(OP_ACK);
 				}
 				irsend.enableIROut(binary_freq);
@@ -324,12 +309,9 @@ void loop() {
 						sendraw_mult(irsend, irparams.rawbuf + binary_codelen, binary_repeatlen, CODE_DIV);
 					}
 					Serial.read();
-					// send OP_ACK
 					Serial.write(OP_ACK);
 				}
 				irrecv.enableIRIn();
-					
-					
 			} else if (c == OP_ENTER_BINARY) {
 				Serial.write(OP_ACK);
 			} else if (c == OP_EXIT_BINARY) {
@@ -443,8 +425,6 @@ void loop() {
 			// note this isn't an "else if"
 			// '\n' finishes input and prompts action.
 			if (c == '\n' && codepos > 0) {
-				//Serial.println();
-				//Serial.println(codepos);
 				if (ansi_mode) {
 					// restore_cursor_position + erase_line_from_cursor
 					Serial.print(F("\x1b[u\x1b[0K"));
@@ -456,12 +436,6 @@ void loop() {
 					if (codepos % 2 != 0 || repeatpos % 2 != 0) {
 						Serial.println(F("ERROR"));
 					} else {
-						//if (irparams.rawbuf[codepos - 1] >= SETTLE_DURATION / CODE_DIV) {
-						//	irparams.rawbuf[codepos - 1] -= (SETTLE_DURATION / CODE_DIV);
-						//}
-						//if (irparams.rawbuf[codepos + repeatpos - 1] >= SETTLE_DURATION / CODE_DIV) {
-						//	irparams.rawbuf[codepos + repeatpos - 1] -= (SETTLE_DURATION / CODE_DIV);
-						//}
 						Serial.println(F("REPEAT"));
 						Serial.flush();
 						irsend.enableIROut(emitfreq);
