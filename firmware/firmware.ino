@@ -62,6 +62,7 @@ uint16_t repeatpos = 0;
 
 // Emitter carrier frequency in kHz
 int emitfreq = 38;
+int current_emitfreq = 0;
 
 extern volatile irparams_t irparams;
 
@@ -160,11 +161,9 @@ void space_long(IRsend sender, unsigned long time) {
 
 // Reimplementation of IRsend::sendraw, which multiplies all code durations by
 // a supplied factor.
-void sendraw_mult(IRsend sender, volatile unsigned int buf[], unsigned int len, unsigned int multiplier, uint8_t khz) {
+void sendraw_mult(IRsend sender, volatile unsigned int buf[], unsigned int len, unsigned int multiplier) {
 	//Serial.println("SENDING");
-	irsend.enableIROut(khz);
 
-	space_long(sender, SETTLE_DURATION);
 	for (unsigned int i = 0; i < len; i++) {
 		unsigned long duration = (unsigned long) buf[i] * multiplier;
 		if (i & 1) {
@@ -305,24 +304,24 @@ void loop() {
 				}
 				set_irmux(binary_mux);
 				if (binary_repeatlen > 0) {
-					if (irparams.rawbuf[binary_codelen - 1] >= SETTLE_DURATION / CODE_DIV) {
-						irparams.rawbuf[binary_codelen - 1] -= (SETTLE_DURATION / CODE_DIV);
-					}
-					if (irparams.rawbuf[binary_codelen + binary_repeatlen - 1] >= SETTLE_DURATION / CODE_DIV) {
-						irparams.rawbuf[binary_codelen - binary_repeatlen - 1] -= (SETTLE_DURATION / CODE_DIV);
-					}
+					//if (irparams.rawbuf[binary_codelen - 1] >= SETTLE_DURATION / CODE_DIV) {
+					//	irparams.rawbuf[binary_codelen - 1] -= (SETTLE_DURATION / CODE_DIV);
+					//}
+					//if (irparams.rawbuf[binary_codelen + binary_repeatlen - 1] >= SETTLE_DURATION / CODE_DIV) {
+					//	irparams.rawbuf[binary_codelen - binary_repeatlen - 1] -= (SETTLE_DURATION / CODE_DIV);
+					//}
 					// send OP_REPEATING
 					Serial.write(OP_REPEATING);
 				} else {
 					// send OP_ACK
 					Serial.write(OP_ACK);
 				}
-				//sendraw_mult(irsend, codebuf, binary_codelen, CODE_DIV, binary_freq);
-				sendraw_mult(irsend, irparams.rawbuf, binary_codelen, CODE_DIV, binary_freq);
+				irsend.enableIROut(binary_freq);
+				space_long(irsend, SETTLE_DURATION);
+				sendraw_mult(irsend, irparams.rawbuf, binary_codelen, CODE_DIV);
 				if (binary_repeatlen > 0) {
 					while (!Serial.available()) {
-						//sendraw_mult(irsend, codebuf + binary_codelen, binary_repeatlen, CODE_DIV, binary_freq);
-						sendraw_mult(irsend, irparams.rawbuf + binary_codelen, binary_repeatlen, CODE_DIV, binary_freq);
+						sendraw_mult(irsend, irparams.rawbuf + binary_codelen, binary_repeatlen, CODE_DIV);
 					}
 					Serial.read();
 					// send OP_ACK
@@ -457,17 +456,19 @@ void loop() {
 					if (codepos % 2 != 0 || repeatpos % 2 != 0) {
 						Serial.println(F("ERROR"));
 					} else {
-						if (irparams.rawbuf[codepos - 1] >= SETTLE_DURATION / CODE_DIV) {
-							irparams.rawbuf[codepos - 1] -= (SETTLE_DURATION / CODE_DIV);
-						}
-						if (irparams.rawbuf[codepos + repeatpos - 1] >= SETTLE_DURATION / CODE_DIV) {
-							irparams.rawbuf[codepos + repeatpos - 1] -= (SETTLE_DURATION / CODE_DIV);
-						}
+						//if (irparams.rawbuf[codepos - 1] >= SETTLE_DURATION / CODE_DIV) {
+						//	irparams.rawbuf[codepos - 1] -= (SETTLE_DURATION / CODE_DIV);
+						//}
+						//if (irparams.rawbuf[codepos + repeatpos - 1] >= SETTLE_DURATION / CODE_DIV) {
+						//	irparams.rawbuf[codepos + repeatpos - 1] -= (SETTLE_DURATION / CODE_DIV);
+						//}
 						Serial.println(F("REPEAT"));
 						Serial.flush();
-						sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV, emitfreq);
+						irsend.enableIROut(emitfreq);
+						space_long(irsend, SETTLE_DURATION);
+						sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV);
 						while (!Serial.available()) {
-							sendraw_mult(irsend, irparams.rawbuf + codepos, repeatpos, CODE_DIV, emitfreq);
+							sendraw_mult(irsend, irparams.rawbuf + codepos, repeatpos, CODE_DIV);
 						}
 						Serial.read();
 						Serial.println(F("OK"));
@@ -477,7 +478,9 @@ void loop() {
 					Serial.println(F("OK"));
 					
 					Serial.flush();
-					sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV, emitfreq);
+					irsend.enableIROut(emitfreq);
+					space_long(irsend, SETTLE_DURATION);
+					sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV);
 				}
 				parser_reset();
 			}
