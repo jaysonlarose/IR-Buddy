@@ -31,6 +31,8 @@ IRrecv irrecv(IRRECV_PIN, 13);
 #define OP_REPEATING    0x06
 #define OP_ENTER_BINARY 0xff
 
+#undef DEBUG_MUX
+
 int code_mult_binary;
 
 IRsend irsend;
@@ -62,6 +64,7 @@ uint16_t repeatpos = 0;
 
 // Emitter carrier frequency in kHz
 int emitfreq = 38;
+uint8_t muxval = 0xff;
 
 extern volatile irparams_t irparams;
 
@@ -100,43 +103,35 @@ void dump_binarymode(decode_results *results) {
 		
 #endif
 
-const uint8_t PROGMEM irmux_to_pin_PGM[] = { 5, 6, 7, 8, 13, 14, 15, 16 };
+const uint8_t PROGMEM irmux_to_pin_PGM[] = { 5, 6, 7, 8, 10, 16, 14, 15 };
 
 void set_irmux(uint8_t mux) {
 	for (uint8_t i = 0; i < 8; i++) {
 		uint8_t muxpin = pgm_read_byte(irmux_to_pin_PGM + i);
 		if (muxpin != 0) {
+			#ifdef DEBUG_MUX
+			if (!binary_mode) {
+				Serial.print(F("MUX pin "));
+				Serial.print(muxpin);
+			}
+			#endif
 			if ((mux & (1 << i)) > 0) {
 				digitalWrite(muxpin, HIGH);
+				#ifdef DEBUG_MUX
+				if (!binary_mode) {
+					Serial.println(F(" HIGH"));
+				}
+				#endif
 			} else {
 				digitalWrite(muxpin, LOW);
+				#ifdef DEBUG_MUX
+				if (!binary_mode) {
+					Serial.println(F(" LOW"));
+				}
+				#endif
 			}
 		}
 	}
-}
-
-void setup() {
-	Serial.begin(115200);
-	// Set multiplier to use in binary mode to convert Arduino-IRremote's
-	// raw USECPERTICK format to my CODE_DIV format.
-	code_mult_binary = USECPERTICK / CODE_DIV;
-	// make rawbuf_a the active buffer.
-	irparams.rawbuf = irparams.rawbuf_a;
-	// set mux pin direction to output
-	for (uint8_t i = 0; i < 8; i++) {
-		uint8_t muxpin = pgm_read_byte(irmux_to_pin_PGM + i);
-		if (muxpin != 0) {
-			pinMode(muxpin, OUTPUT);
-		}
-	}
-	// initial mux
-	set_irmux(0xff);
-	#ifdef IRRECV_PIN
-	// set the receive pin direction to INPUT
-	pinMode(IRRECV_PIN, INPUT);
-	// start the receiver
-	irrecv.enableIRIn();
-	#endif
 }
 
 // Reimplementation of IRsend::mark, because the Arduino-IRremote version is
@@ -155,6 +150,33 @@ void space_long(IRsend sender, unsigned long time) {
 	if (time > 0) {
 		sender.custom_delay_usec(time);
 	}
+}
+
+
+void setup() {
+	Serial.begin(115200);
+	// Set multiplier to use in binary mode to convert Arduino-IRremote's
+	// raw USECPERTICK format to my CODE_DIV format.
+	code_mult_binary = USECPERTICK / CODE_DIV;
+	// make rawbuf_a the active buffer.
+	irparams.rawbuf = irparams.rawbuf_a;
+	// set mux pin direction to output
+	for (uint8_t i = 0; i < 8; i++) {
+		uint8_t muxpin = pgm_read_byte(irmux_to_pin_PGM + i);
+		if (muxpin != 0) {
+			pinMode(muxpin, OUTPUT);
+		}
+	}
+	// initial mux
+	set_irmux(0xff);
+	irsend.enableIROut(binary_freq);
+	space_long(irsend, SETTLE_DURATION);
+	#ifdef IRRECV_PIN
+	// set the receive pin direction to INPUT
+	pinMode(IRRECV_PIN, INPUT);
+	// start the receiver
+	irrecv.enableIRIn();
+	#endif
 }
 
 // Reimplementation of IRsend::sendraw, which multiplies all code durations by
@@ -218,7 +240,8 @@ unsigned long rawval = 0;
 void parser_reset() {
 	if (binary_mode) {
 	} else {
-		set_irmux(0xff);
+		//set_irmux(0xff);
+		muxval = 0xff;
 		#ifdef IRRECV_PIN
 		irrecv.enableIRIn();
 		#endif
@@ -385,8 +408,7 @@ void loop() {
 					Serial.println(F("ERROR"));
 					parser_reset();
 				} else {
-					uint8_t muxval = (uint8_t) rawval;
-					set_irmux(muxval);
+					muxval = (uint8_t) rawval;
 					codepos--;
 					// restore_cursor_position + "MUX " + save_cursor_position
 					if (ansi_mode) {
@@ -438,6 +460,7 @@ void loop() {
 					} else {
 						Serial.println(F("REPEAT"));
 						Serial.flush();
+						set_irmux(muxval);
 						irsend.enableIROut(emitfreq);
 						space_long(irsend, SETTLE_DURATION);
 						sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV);
@@ -452,6 +475,7 @@ void loop() {
 					Serial.println(F("OK"));
 					
 					Serial.flush();
+					set_irmux(muxval);
 					irsend.enableIROut(emitfreq);
 					space_long(irsend, SETTLE_DURATION);
 					sendraw_mult(irsend, irparams.rawbuf, codepos, CODE_DIV);
